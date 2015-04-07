@@ -13,6 +13,7 @@ except ImportError:
     import json as simplejson
 
 from elasticsearch import Elasticsearch, TransportError
+from elasticsearch.client import ClusterClient
 from elasticsearch.client import NodesClient
 from subprocess import CalledProcessError
 
@@ -96,6 +97,15 @@ def get_node_stats(node_id=''):
         pass
     return []
 
+def get_cluster_stats(node_id=''):
+    es = Elasticsearch(args.server)
+    cluster = ClusterClient(es)
+    res = cluster.stats(node_id)
+    try:
+        return res
+    except KeyError:
+        pass
+    return []
 
 def jsonpipe(obj, pathsep='.', path=()):
 
@@ -396,6 +406,11 @@ def es_dump_node_stats():
         print line
     return os.EX_OK
 
+def es_dump_cluster_stats():
+    cluster_stats = get_cluster_stats()
+    for line in jsonpipe(cluster_stats):
+        print line
+    return os.EX_OK
 
 def es_dump_node_stats_local():
     node_stats = get_node_stats(node_id='_local')
@@ -413,6 +428,7 @@ commands = {
     "stop-replication": es_stop_replication,
     "unban-node": es_unban_node,
     "metrics": es_dump_node_stats,
+    "cluster-stats": es_dump_cluster_stats,
     "metrics-local": es_dump_node_stats_local,
     "status": lambda: '\n'.join(cluster_status()),
 }
